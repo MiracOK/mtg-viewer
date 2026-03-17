@@ -25,10 +25,9 @@ class ImportCardCommand extends Command
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly LoggerInterface        $logger,
-        private array                           $csvHeader = []
-    )
-    {
+        private readonly LoggerInterface $logger,
+        private array $csvHeader = []
+    ) {
         parent::__construct();
     }
 
@@ -37,7 +36,7 @@ class ImportCardCommand extends Command
         ini_set('memory_limit', '2G');
         // On récupère le temps actuel
         $io = new SymfonyStyle($input, $output);
-        $filepath = __DIR__ . '/../../data/cards.csv';
+        $filepath = __DIR__ . '/../../data/AllPrintingsCSVFiles/cards.csv';
         $handle = fopen($filepath, 'r');
 
         // On récupère le temps actuel
@@ -58,15 +57,16 @@ class ImportCardCommand extends Command
 
         while (($row = $this->readCSV($handle)) !== false) {
             $i++;
+            if ($row !== []) {
+                if (!in_array($row['uuid'], $uuidInDatabase)) {
+                    $this->addCard($row);
+                }
 
-            if (!in_array($row['uuid'], $uuidInDatabase)) {
-                $this->addCard($row);
-            }
-
-            if ($i % 2000 === 0) {
-                $this->entityManager->flush();
-                $this->entityManager->clear();
-                $progressIndicator->advance();
+                if ($i % 2000 === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                    $progressIndicator->advance();
+                }
             }
         }
         // Toujours flush en sorti de boucle
@@ -88,6 +88,9 @@ class ImportCardCommand extends Command
         if ($row === false) {
             return false;
         }
+        if (count($this->csvHeader) !== count($row)) {
+            return [];
+        }
         return array_combine($this->csvHeader, $row);
     }
 
@@ -106,6 +109,5 @@ class ImportCardCommand extends Command
         $card->setText($row['text']);
         $card->setType($row['type']);
         $this->entityManager->persist($card);
-
     }
 }

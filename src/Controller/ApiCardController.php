@@ -29,6 +29,21 @@ class ApiCardController extends AbstractController
         return $this->json($cards);
     }
 
+
+    #[Route('/search/{name}', name: 'Show card By Name', methods: ['GET'])]
+    #[OA\Parameter(name: 'name', description: 'Name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
+    #[OA\Put(description: 'Get a card by Artist Name')]
+    #[OA\Response(response: 200, description: 'Show card')]
+    #[OA\Response(response: 404, description: 'Card not found')]
+    public function cardShowByName(string $name): Response
+    {
+    $card = $this->entityManager->getRepository(Card::class)->getCardByName($name);
+        if (!$card) {
+            return $this->json(['error' => 'Card not found'], 404);
+        }
+        return $this->json($card);
+    }
+
     #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
     #[OA\Parameter(name: 'uuid', description: 'UUID of the card', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
     #[OA\Put(description: 'Get a card by UUID')]
@@ -42,4 +57,6 @@ class ApiCardController extends AbstractController
         }
         return $this->json($card);
     }
+
+    
 }
