@@ -46,7 +46,7 @@ class CardRepository extends ServiceEntityRepository
         return array_column($result, 'setCode');
     }
 
-    public function getAllCards(?string $setCode = null): array
+    public function getAllCards(?string $setCode = null, int $page = 1, int $limit = 100): array
     {
         $qb = $this->createQueryBuilder('c');
 
@@ -55,7 +55,22 @@ class CardRepository extends ServiceEntityRepository
                ->setParameter('setCode', $setCode);
         }
 
-        return $qb->getQuery()->getResult();
+        $qb->setFirstResult(($page - 1) * $limit)
+           ->setMaxResults($limit);
+
+        $totalQb = $this->createQueryBuilder('c')->select('count(c.id)');
+        if ($setCode) {
+            $totalQb->andWhere('c.setCode = :setCode')
+                    ->setParameter('setCode', $setCode);
+        }
+        $total = (int) $totalQb->getQuery()->getSingleScalarResult();
+
+        return [
+            'data' => $qb->getQuery()->getResult(),
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit
+        ];
     }
 
     public function getCardByName(string $name, ?string $setCode = null): array

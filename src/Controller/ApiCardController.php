@@ -32,13 +32,19 @@ class ApiCardController extends AbstractController
 
     #[Route('/all', name: 'List all cards', methods: ['GET'])]
     #[OA\Parameter(name: 'setCode', description: 'Filter by Set Code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
+    #[OA\Parameter(name: 'page', description: 'Page number', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1))]
     #[OA\Get(description: 'Return all cards in the database')]
     #[OA\Response(response: 200, description: 'List all cards')]
     public function cardAll(Request $request): Response
     {
         $setCode = $request->query->get('setCode');
-        $cards = $this->entityManager->getRepository(Card::class)->getAllCards($setCode);
-        return $this->json($cards);
+        $page = (int) $request->query->get('page', '1');
+        if ($page < 1) {
+            $page = 1;
+        }
+
+        $result = $this->entityManager->getRepository(Card::class)->getAllCards($setCode, $page, 100);
+        return $this->json($result);
     }
 
 
