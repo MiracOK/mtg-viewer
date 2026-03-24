@@ -7,6 +7,7 @@ use App\Entity\Card;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use OpenApi\Attributes as OA;
 use Symfony\Component\Routing\Annotation\Route;
@@ -19,24 +20,38 @@ class ApiCardController extends AbstractController
         private readonly EntityManagerInterface $entityManager
     ) {
     }
-    #[Route('/all', name: 'List all cards', methods: ['GET'])]
-    #[OA\Put(description: 'Return all cards in the database')]
-    #[OA\Response(response: 200, description: 'List all cards')]
-    public function cardAll(): Response
+
+    #[Route('/sets', name: 'List all set codes', methods: ['GET'])]
+    #[OA\Get(description: 'Return all distinct set codes in the database')]
+    #[OA\Response(response: 200, description: 'List all set codes')]
+    public function setCodes(): Response
     {
-        $cards = $this->entityManager->getRepository(Card::class)->findAll();
+        $setCodes = $this->entityManager->getRepository(Card::class)->getDistinctSetCodes();
+        return $this->json($setCodes);
+    }
+
+    #[Route('/all', name: 'List all cards', methods: ['GET'])]
+    #[OA\Parameter(name: 'setCode', description: 'Filter by Set Code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
+    #[OA\Get(description: 'Return all cards in the database')]
+    #[OA\Response(response: 200, description: 'List all cards')]
+    public function cardAll(Request $request): Response
+    {
+        $setCode = $request->query->get('setCode');
+        $cards = $this->entityManager->getRepository(Card::class)->getAllCards($setCode);
         return $this->json($cards);
     }
 
 
     #[Route('/search/{name}', name: 'Show card By Name', methods: ['GET'])]
     #[OA\Parameter(name: 'name', description: 'Partial name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
+    #[OA\Parameter(name: 'setCode', description: 'Filter by Set Code', in: 'query', required: false, schema: new OA\Schema(type: 'string'))]
     #[OA\Get(description: 'Search cards by name (limited to 20 results)')]
     #[OA\Response(response: 200, description: 'List of matching cards')]
     #[OA\Response(response: 404, description: 'Cards not found')]
-    public function cardShowByName(string $name): Response
+    public function cardShowByName(string $name, Request $request): Response
     {
-        $cards = $this->entityManager->getRepository(Card::class)->getCardByName($name);
+        $setCode = $request->query->get('setCode');
+        $cards = $this->entityManager->getRepository(Card::class)->getCardByName($name, $setCode);
         if (empty($cards)) {
             return $this->json(['error' => 'Cards not found'], 404);
         }
@@ -44,8 +59,8 @@ class ApiCardController extends AbstractController
     }
 
     #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
-    #[OA\Parameter(name: 'uuid', description: 'UUID of the card', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
-    #[OA\Put(description: 'Get a card by UUID')]
+    #[OA\Parameter(name: 'uuid', description: 'UUID of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
+    #[OA\Get(description: 'Get a card by UUID')]
     #[OA\Response(response: 200, description: 'Show card')]
     #[OA\Response(response: 404, description: 'Card not found')]
     public function cardShow(string $uuid): Response

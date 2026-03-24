@@ -33,12 +33,43 @@ class CardRepository extends ServiceEntityRepository
         return array_column($result, 'uuid');
     }
 
-     public function getCardByName(string $name): array
+    public function getDistinctSetCodes(): array
     {
-        return $this->createQueryBuilder('c')
-            ->where('c.name Like :name')
-            ->setParameter('name', '%' . $name . '%')
-            ->setMaxResults(20)
+        $result = $this->createQueryBuilder('c')
+            ->select('c.setCode')
+            ->distinct()
+            ->where('c.setCode IS NOT NULL')
+            ->orderBy('c.setCode', 'ASC')
+            ->getQuery()
+            ->getResult(AbstractQuery::HYDRATE_ARRAY);
+
+        return array_column($result, 'setCode');
+    }
+
+    public function getAllCards(?string $setCode = null): array
+    {
+        $qb = $this->createQueryBuilder('c');
+
+        if ($setCode) {
+            $qb->andWhere('c.setCode = :setCode')
+               ->setParameter('setCode', $setCode);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function getCardByName(string $name, ?string $setCode = null): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->where('c.name LIKE :name')
+            ->setParameter('name', '%' . $name . '%');
+
+        if ($setCode) {
+            $qb->andWhere('c.setCode = :setCode')
+               ->setParameter('setCode', $setCode);
+        }
+
+        return $qb->setMaxResults(20)
             ->getQuery()
             ->getResult();
     }
