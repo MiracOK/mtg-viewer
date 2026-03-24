@@ -94,7 +94,7 @@ class ImportCardCommand extends Command
         return array_combine($this->csvHeader, $row);
     }
 
-    private function addCard(array $row)
+    private function addCard(array $row): void
     {
         $uuid = $row['uuid'];
 

@@ -1,25 +1,25 @@
 <script setup>
-// TODO: La page de recheche de cartes.
-
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref } from 'vue';
 import { fetchSearchCard } from '../services/cardService';
 
-const route = useRoute();
-const cards = ref({});
-const loadingCard = ref(true);
+const searchInput = ref('');
+const cards = ref([]);
+const loadingCards = ref(false);
 
-async function loadCard(event) {
-    loadingCard.value = true;
-    cards.value = await fetchSearchCard(event.target.value);
-    loadingCard.value = false;
-    console.log(card.value)
+async function handleSearch() {
+    if (searchInput.value.length >= 3) {
+        loadingCards.value = true;
+        try {
+            const results = await fetchSearchCard(searchInput.value);
+            cards.value = results || [];
+        } catch (e) {
+            cards.value = [];
+        }
+        loadingCards.value = false;
+    } else {
+        cards.value = [];
+    }
 }
-
-onMounted(() => {
-    loadCard(route.params.name);
-});
-
 </script>
 
 <template>
@@ -28,14 +28,25 @@ onMounted(() => {
     </div>
     <div class="card-list">
         <div>
-            <input type="text" @keyup.enter="loadCard($event)"/>
+            <label for="searchInput">Nom de la carte</label>
+            <input
+                id="searchInput"
+                v-model="searchInput"
+                type="text"
+                placeholder="Entrez au moins 3 caractères..."
+                @input="handleSearch"
+            />
         </div>
-        <div v-if="loadingCards">Loading...</div>
-        <div v-else>
-            <div class="card" v-for="card in cards" :key="card.id">
-                <router-link :to="{ name: 'get-card', params: { uuid: card.uuid } }"> {{ card.name }} - {{ card.uuid }}
+        <div v-if="loadingCards">Recherche en cours...</div>
+        <div v-else-if="cards.length > 0">
+            <div class="card-result" v-for="card in cards" :key="card.uuid">
+                <router-link :to="{ name: 'get-card', params: { uuid: card.uuid } }">
+                    {{ card.name }} <span>({{ card.uuid }})</span>
                 </router-link>
             </div>
+        </div>
+        <div v-else-if="searchInput.length >= 3 && !loadingCards">
+            Aucune carte trouvée pour "{{ searchInput }}"
         </div>
     </div>
 </template>

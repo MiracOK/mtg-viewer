@@ -16,8 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class ApiCardController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly LoggerInterface $logger
+        private readonly EntityManagerInterface $entityManager
     ) {
     }
     #[Route('/all', name: 'List all cards', methods: ['GET'])]
@@ -31,17 +30,17 @@ class ApiCardController extends AbstractController
 
 
     #[Route('/search/{name}', name: 'Show card By Name', methods: ['GET'])]
-    #[OA\Parameter(name: 'name', description: 'Name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
-    #[OA\Put(description: 'Get a card by Artist Name')]
-    #[OA\Response(response: 200, description: 'Show card')]
-    #[OA\Response(response: 404, description: 'Card not found')]
+    #[OA\Parameter(name: 'name', description: 'Partial name of the card', in: 'path', required: true, schema: new OA\Schema(type: 'string'))]
+    #[OA\Get(description: 'Search cards by name (limited to 20 results)')]
+    #[OA\Response(response: 200, description: 'List of matching cards')]
+    #[OA\Response(response: 404, description: 'Cards not found')]
     public function cardShowByName(string $name): Response
     {
-    $card = $this->entityManager->getRepository(Card::class)->getCardByName($name);
-        if (!$card) {
-            return $this->json(['error' => 'Card not found'], 404);
+        $cards = $this->entityManager->getRepository(Card::class)->getCardByName($name);
+        if (empty($cards)) {
+            return $this->json(['error' => 'Cards not found'], 404);
         }
-        return $this->json($card);
+        return $this->json($cards);
     }
 
     #[Route('/{uuid}', name: 'Show card', methods: ['GET'])]
@@ -57,6 +56,4 @@ class ApiCardController extends AbstractController
         }
         return $this->json($card);
     }
-
-    
 }
